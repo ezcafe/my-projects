@@ -1,4 +1,4 @@
-## Project distillation – `pm-gantt`
+## Project distillation – `my-projects`
 
 ### 1. Problem & goal
 
