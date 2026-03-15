@@ -1,0 +1,340 @@
+@import './gantt.css';
+@import './project-details.css';
+@import './add-project.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #111827;
+  background: #f3f4f6;
+}
+
+/* Form fields: same font as app (family, size, line-height) — browsers often use different defaults */
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+}
+
+/* ----- Sun-position theme: light (day) / dark (night) ----- */
+[data-theme='dark'] body {
+  color: #e5e7eb;
+  background: #0f172a;
+}
+
+[data-theme='dark'] .app-header {
+  border-bottom-color: #334155;
+  background: #1e293bcc;
+}
+
+[data-theme='dark'] .app-header h1 {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .gantt-container {
+  background: #1e293b;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .fab {
+  background: linear-gradient(135deg, #3730a3, #5b21b6);
+  box-shadow: 0 15px 30px rgba(91, 33, 182, 0.4);
+}
+
+[data-theme='dark'] .btn {
+  background: #4f46e5;
+}
+
+[data-theme='dark'] .btn:hover {
+  background: #4338ca;
+}
+
+[data-theme='dark'] .btn-secondary {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .btn-secondary:hover {
+  background: #475569;
+}
+
+[data-theme='dark'] .btn-link {
+  color: #818cf8;
+}
+
+[data-theme='dark'] .btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+[data-theme='dark'] .btn-danger:hover {
+  background: #b91c1c;
+}
+
+[data-theme='dark'] .modal {
+  background: #1e293b;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .modal-body input,
+[data-theme='dark'] .modal-body textarea,
+[data-theme='dark'] .modal-body select {
+  border-color: #475569;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffffcc;
+  backdrop-filter: blur(8px);
+}
+
+.app-header h1 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+
+.gantt-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+}
+
+.gantt-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.fab {
+  position: fixed;
+  right: 1.75rem;
+  bottom: 1.75rem;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  font-size: 1.8rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 15px 30px rgba(37, 99, 235, 0.35);
+  cursor: pointer;
+}
+
+.fab:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 35px rgba(37, 99, 235, 0.45);
+}
+
+.fab:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.3);
+}
+
+.btn {
+  border-radius: 999px;
+  border: none;
+  padding: 0.4rem 0.9rem;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #1d4ed8;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.btn-secondary:hover {
+  background: #d1d5db;
+}
+
+.btn-link {
+  background: transparent;
+  color: #2563eb;
+  padding-left: 0;
+}
+
+.btn-small {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: inherit;
+}
+
+.btn-ghost:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme='dark'] .btn-ghost {
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-danger {
+  background: #dc2626;
+}
+
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+}
+
+.modal {
+  background: #ffffff;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem 1rem;
+  width: min(400px, 100% - 2rem);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.35);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.modal-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.modal-body input,
+.modal-body textarea,
+.modal-body select {
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 0.35rem 0.6rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* Wrapper for vanilla-calendar-pro date range picker (one calendar for start + end) */
+.date-range-picker-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  outline: none;
+}
+
+.date-range-picker-wrap:focus {
+  outline: none;
+}
+
+/* Popup container so calendar stays open until second date click (no inputMode blur) */
+.date-range-picker-popup {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 0.5rem;
+}
+
+/* Ensure selected range is visible on next/prev month cells (e.g. April 1–5 when viewing March).
+   Use same accent as current-month selected so the range is clearly visible; !important to override library. */
+.date-range-picker-popup .vc-date[data-vc-date-month="next"][data-vc-date-selected] .vc-date__btn,
+.date-range-picker-popup .vc-date[data-vc-date-month="prev"][data-vc-date-selected] .vc-date__btn {
+  background-color: rgba(6, 182, 212, 0.7) !important;
+  color: #fff !important;
+}
+[data-theme='dark'] .date-range-picker-popup .vc-date[data-vc-date-month="next"][data-vc-date-selected] .vc-date__btn,
+[data-theme='dark'] .date-range-picker-popup .vc-date[data-vc-date-month="prev"][data-vc-date-selected] .vc-date__btn {
+  background-color: rgba(6, 182, 212, 0.8) !important;
+  color: #fff !important;
+}
+
+/* Force visible until 2 dates selected (override library hidden state on popup or any descendant) */
+.date-range-picker-popup.range-incomplete[data-vc-calendar-hidden],
+.date-range-picker-popup.range-incomplete [data-vc-calendar-hidden] {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+.date-range-picker-popup.range-incomplete[data-vc-calendar-hidden] *,
+.date-range-picker-popup.range-incomplete [data-vc-calendar-hidden] * {
+  pointer-events: auto !important;
+}
+

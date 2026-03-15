@@ -1,0 +1,117 @@
+.gantt-axis text {
+  font-size: 0.6rem;
+  fill: #6b7280;
+}
+
+.gantt-axis-level1-border-left,
+.gantt-axis-level1-border-right,
+.gantt-axis-level1-border-bottom {
+  stroke: #d1d5db;
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.gantt-axis-boundary {
+  stroke: #d1d5db;
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+/* Top level 2 axis tick lines (D3-generated) – same color as boundaries */
+.gantt-axis-level2 .tick line {
+  stroke: #d1d5db;
+  stroke-width: 1;
+}
+
+.gantt-axis-text-level1 {
+  font-size: 0.65rem;
+  font-weight: 600;
+  fill: #374151;
+}
+
+.gantt-axis-text-level2 {
+  fill: #6b7280;
+}
+
+.gantt-bar {
+  /* fill set per bar in JS from Pastel Rainbow palette */
+}
+
+.gantt-milestones {
+  pointer-events: none;
+}
+
+.gantt-milestone-line {
+  stroke-width: 2;
+  pointer-events: none;
+  /* stroke and stroke-opacity set in JS (black, 0.1) */
+}
+
+.gantt-bar-group:hover .gantt-bar {
+  filter: brightness(0.92);
+}
+
+.gantt-bar-label {
+  font-size: 0.75rem;
+  fill: #fff;
+  pointer-events: none;
+}
+
+.gantt-time-stick {
+  fill: #374151;
+}
+
+.gantt-time-stick-odd {
+  fill-opacity: 0.02;
+}
+
+.gantt-time-stick-even {
+  fill-opacity: 0.04;
+}
+
+.gantt-chart-background {
+  fill: transparent;
+  pointer-events: all;
+  touch-action: none;
+}
+
+.gantt-today-line {
+  stroke: #ef4444;
+  stroke-width: 2;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+
+/* Dark theme (sun down) – axis and chart styling */
+[data-theme='dark'] .gantt-axis text {
+  fill: #94a3b8;
+}
+
+[data-theme='dark'] .gantt-axis-level1-border-left,
+[data-theme='dark'] .gantt-axis-level1-border-right,
+[data-theme='dark'] .gantt-axis-level1-border-bottom,
+[data-theme='dark'] .gantt-axis-boundary,
+[data-theme='dark'] .gantt-axis-level2 .tick line {
+  stroke: #475569;
+}
+
+[data-theme='dark'] .gantt-axis-text-level1 {
+  fill: #cbd5e1;
+}
+
+[data-theme='dark'] .gantt-axis-text-level2 {
+  fill: #94a3b8;
+}
+
+[data-theme='dark'] .gantt-bar-label {
+  fill: #fff;
+}
+
+[data-theme='dark'] .gantt-time-stick {
+  fill: #334155;
+}
+
+[data-theme='dark'] .gantt-today-line {
+  stroke: #f87171;
+}
+
