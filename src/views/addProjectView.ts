@@ -23,7 +23,8 @@ import {
   taskTreeToDrafts,
   type TaskDraft,
 } from '../ui/components/addProjectTaskTree';
-import { goToHome, goToProject } from '../router';
+import { goToHome } from '../router';
+import { parseImportFile } from '../services/exportImportService';
 import { formatDateDDMMYY, parseDDMMYY } from '../utils/dateFormat';
 import { attachDateRangePicker } from '../utils/dateRangePicker';
 
@@ -187,6 +188,7 @@ export async function renderAddProjectView(
               </form>
             </div>
             <div class="project-details-col-meta-actions">
+              ${editProjectId == null ? '<input type="file" accept=".json,application/json" id="add-project-import-input" style="display:none" aria-hidden="true" /><button type="button" class="btn btn-secondary" id="add-project-import">Import</button>' : ''}
               <button type="button" class="btn" id="add-project-save">Save</button>
               <button type="button" class="btn btn-secondary" id="add-project-save-exit">Save & Exit</button>
               ${editProjectId != null ? '<button type="button" class="btn btn-secondary add-project-action-archive" id="add-project-archive">Archive</button><button type="button" class="btn btn-danger" id="add-project-delete">Delete</button>' : ''}
@@ -308,12 +310,14 @@ export async function renderAddProjectView(
     }
   });
 
+  const saveExitOriginalContent = saveExitBtn.innerHTML;
   saveExitBtn.addEventListener('click', async () => {
     const meta = readMeta();
     if (!meta) return;
     saveExitBtn.disabled = true;
     saveExitBtn.setAttribute('aria-busy', 'true');
-    saveExitBtn.textContent = 'Saving…';
+    saveExitBtn.innerHTML =
+      '<span class="add-project-btn-loading-spinner" aria-hidden="true"></span>Saving…';
     try {
       if (savedProjectId != null) {
         await updateProject(savedProjectId, {
@@ -325,7 +329,6 @@ export async function renderAddProjectView(
           priority: meta.priority,
         });
         await createTasksRecursive(savedProjectId, taskTree.getTasks(), null);
-        goToProject(savedProjectId);
       } else {
         const project = await createProject({
           name: meta.name,
@@ -337,13 +340,18 @@ export async function renderAddProjectView(
         });
         savedProjectId = project.id;
         await createTasksRecursive(savedProjectId, taskTree.getTasks(), null);
-        goToHome();
       }
-    } finally {
+      window.history.back();
+    } catch (err) {
       saveExitBtn.disabled = false;
       saveExitBtn.removeAttribute('aria-busy');
-      saveExitBtn.textContent = 'Save & Exit';
+      saveExitBtn.innerHTML = saveExitOriginalContent;
+      alert(err instanceof Error ? err.message : 'Failed to save');
+      return;
     }
+    saveExitBtn.disabled = false;
+    saveExitBtn.removeAttribute('aria-busy');
+    saveExitBtn.innerHTML = saveExitOriginalContent;
   });
 
   if (editProjectId != null) {
@@ -384,6 +392,39 @@ export async function renderAddProjectView(
   }
 
   addTaskBtn.addEventListener('click', () => taskTree.addRootTask());
+
+  if (editProjectId == null) {
+    const importBtn = root.querySelector<HTMLButtonElement>('#add-project-import');
+    const importInput = root.querySelector<HTMLInputElement>('#add-project-import-input');
+    importBtn?.addEventListener('click', () => importInput?.click());
+    importInput?.addEventListener('change', () => {
+      const file = importInput.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = typeof reader.result === 'string' ? reader.result : '';
+        importInput.value = '';
+        try {
+          const { project, tasks } = parseImportFile(text);
+          const startFormatted = formatDateDDMMYY(project.startDate);
+          const endFormatted = formatDateDDMMYY(project.endDate);
+          (metaForm.elements.namedItem('name') as HTMLInputElement).value = project.name;
+          (metaForm.elements.namedItem('description') as HTMLTextAreaElement).value = project.description ?? '';
+          (metaForm.elements.namedItem('status') as HTMLSelectElement).value = project.status;
+          (metaForm.elements.namedItem('priority') as HTMLSelectElement).value = project.priority;
+          metaStartInput.value = startFormatted;
+          metaEndInput.value = endFormatted;
+          metaDisplayEl.value = `${startFormatted} — ${endFormatted}`;
+          const drafts = taskTreeToDrafts(buildTaskTree(tasks), startFormatted, endFormatted);
+          taskTree.setTasks(drafts);
+          taskTree.refresh();
+        } catch {
+          alert('Invalid or unsupported export file.');
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
 }
 
 function escapeHtml(s: string): string {

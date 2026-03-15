@@ -7,6 +7,10 @@ import {
   getTaskWithDescendantsTree,
   formatSubtaskListForConfirm,
 } from '../services/taskService';
+import {
+  exportProjectToJson,
+  downloadJson,
+} from '../services/exportImportService';
 import type { Task, ProjectPriority } from '../models/domain';
 import { goToHome, goToEditProject, goToProject } from '../router';
 import { formatDateDDMMYY } from '../utils/dateFormat';
@@ -182,8 +186,9 @@ export async function renderProjectDetailsView(
             </div>
             <div class="project-details-col-meta-actions">
               <button type="button" class="btn btn-link project-details-toggle-meta" id="toggle-meta" aria-label="Hide project details" aria-expanded="${metaVisible}">\u2039</button>
-              <button type="button" class="btn" id="clone-project">Clone project</button>
-              <button type="button" class="btn" id="edit-project">Edit project</button>
+              <button type="button" class="btn" id="clone-project">Clone</button>
+              <button type="button" class="btn" id="edit-project">Edit</button>
+              <button type="button" class="btn btn-secondary" id="export-project">Export</button>
             </div>
           </aside>
           <div class="project-details-tasks-section">
@@ -235,6 +240,24 @@ export async function renderProjectDetailsView(
       cloneBtn.disabled = false;
       cloneBtn.textContent = originalText;
       alert(err instanceof Error ? err.message : 'Failed to clone project');
+    }
+  });
+
+  const exportBtn = root.querySelector<HTMLButtonElement>('#export-project');
+  exportBtn?.addEventListener('click', async () => {
+    if (!exportBtn) return;
+    const originalText = exportBtn.textContent;
+    exportBtn.disabled = true;
+    exportBtn.textContent = 'Exporting…';
+    try {
+      const jsonString = await exportProjectToJson(projectId);
+      const sanitized = project.name.replace(/[^a-zA-Z0-9-_]+/g, '-').replace(/^-|-$/g, '') || 'project';
+      downloadJson(`${sanitized}-export.json`, jsonString);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to export project');
+    } finally {
+      exportBtn.disabled = false;
+      exportBtn.textContent = originalText!;
     }
   });
 

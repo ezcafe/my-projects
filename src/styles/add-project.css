@@ -430,3 +430,22 @@
   border-color: #475569;
   color: #e2e8f0;
 }
+
+/* Save & Exit loading state */
+@keyframes add-project-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.add-project-btn-loading-spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-inline-end: 0.35em;
+  vertical-align: -0.2em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: add-project-spin 0.7s linear infinite;
+}
