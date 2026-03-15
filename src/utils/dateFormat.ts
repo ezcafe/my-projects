@@ -49,3 +49,12 @@ export function parseDDMMYY(str: string): string | null {
   if (d < 1 || d > lastDay) return null;
   return `${y}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
+
+/**
+ * Convert a date-only string (YYYY-MM-DD) to an ISO string at UTC midnight.
+ * Preserves the calendar date across timezones (avoids local-midnight → UTC shift).
+ */
+export function dateOnlyToUtcIso(isoDateOnly: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDateOnly)) return new Date(isoDateOnly).toISOString();
+  return isoDateOnly + 'T00:00:00.000Z';
+}

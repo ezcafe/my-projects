@@ -91,7 +91,13 @@ export function attachDateRangePicker(
     setTimeout(() => {
       clickOutsideHandler = (e: MouseEvent) => {
         const target = e.target as Node;
-        if (popup.contains(target) || wrapper.contains(target)) return;
+        const path = e.composedPath();
+        const inside =
+          popup.contains(target) ||
+          wrapper.contains(target) ||
+          path.includes(popup) ||
+          path.includes(wrapper);
+        if (inside) return;
         closePopup();
         isOpen = false;
         selectionStep = 0;

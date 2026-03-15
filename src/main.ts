@@ -1,6 +1,7 @@
 import './styles/main.css';
 import { attachRouter } from './router';
 import { initTheme } from './services/themeService';
+import { runProjectDateNotifications } from './services/notificationService';
 
 initTheme();
 
@@ -11,3 +12,4 @@ if (!appRoot) {
 }
 
 attachRouter(appRoot);
+runProjectDateNotifications();

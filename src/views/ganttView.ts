@@ -3,6 +3,13 @@ import type { Project } from '../models/domain';
 import { listProjects } from '../services/projectService';
 import { goToProject, goToAddProject } from '../router';
 import { getTheme, getGanttPaletteForTheme, subscribeToTheme } from '../services/themeService';
+import { getMilestoneDates, MILESTONE_OFFSETS_DAYS } from '../utils/milestoneDates';
+import {
+  isSupported as isNotificationSupported,
+  getPermission as getNotificationPermission,
+  requestPermission as requestNotificationPermission,
+  runProjectDateNotifications,
+} from '../services/notificationService';
 
 const ROW_HEIGHT = 32;
 const ROW_GAP = 8;
@@ -274,19 +281,6 @@ function visibleBarRange(
 
 const BAR_RADIUS = 6;
 
-/** Milestone offsets in days before project end. Default: 1 week, 2 weeks, 1 month (last day excluded). */
-export const GANTT_MILESTONE_OFFSETS_DAYS: number[] = [7, 14, 30];
-
-function addDays(d: Date, days: number): Date {
-  const t = new Date(d);
-  t.setDate(t.getDate() + days);
-  return t;
-}
-
-function getMilestoneDates(endDate: Date, offsetsDays: number[]): Date[] {
-  return offsetsDays.map((days) => addDays(endDate, -days));
-}
-
 /** Path `d` for a bar with optional left/right border radius (only when that edge is inside viewport). */
 function ganttBarPathD(
   barLeft: number,
@@ -313,6 +307,10 @@ function ganttBarPathD(
 export async function renderGanttView(root: HTMLElement) {
   root.innerHTML = `
     <div class="app-shell">
+      <div class="gantt-notification-banner" id="gantt-notification-banner" role="status" aria-live="polite" hidden>
+        <span class="gantt-notification-banner__text">Get notified when projects start, end, or hit milestones.</span>
+        <button type="button" class="gantt-notification-banner__enable" id="gantt-notification-enable">Enable</button>
+      </div>
       <main class="app-main">
         <div class="gantt-container">
           <svg class="gantt-svg"></svg>
@@ -325,7 +323,27 @@ export async function renderGanttView(root: HTMLElement) {
   const svgEl = root.querySelector<SVGSVGElement>('.gantt-svg');
   const container = root.querySelector<HTMLDivElement>('.gantt-container');
   const fab = root.querySelector<HTMLButtonElement>('.fab');
+  const banner = root.querySelector<HTMLDivElement>('#gantt-notification-banner');
+  const enableBtn = root.querySelector<HTMLButtonElement>('#gantt-notification-enable');
   if (!svgEl || !container || !fab) return;
+
+  if (banner && enableBtn && isNotificationSupported()) {
+    const updateBannerVisibility = () => {
+      if (getNotificationPermission() === 'default') {
+        banner.hidden = false;
+      } else {
+        banner.hidden = true;
+      }
+    };
+    updateBannerVisibility();
+    enableBtn.addEventListener('click', async () => {
+      const permission = await requestNotificationPermission();
+      if (permission === 'granted') {
+        await runProjectDateNotifications();
+      }
+      updateBannerVisibility();
+    });
+  }
 
   fab.onclick = () => {
     goToAddProject();
@@ -829,7 +847,7 @@ function drawGantt(
     const { start, end } = visibleBarRange(d, barRangeStart, barRangeEnd);
     const barStart = startOfDay(new Date(d.startDate));
     const barEnd = startOfDay(new Date(d.endDate));
-    const milestoneDates = getMilestoneDates(new Date(d.endDate), GANTT_MILESTONE_OFFSETS_DAYS).filter(
+    const milestoneDates = getMilestoneDates(new Date(d.endDate), MILESTONE_OFFSETS_DAYS).filter(
       (m) => {
         const mDay = startOfDay(m);
         const inProjectRange = mDay > barStart && mDay <= barEnd;

@@ -25,7 +25,7 @@ import {
 } from '../ui/components/addProjectTaskTree';
 import { goToHome } from '../router';
 import { parseImportFile } from '../services/exportImportService';
-import { formatDateDDMMYY, parseDDMMYY } from '../utils/dateFormat';
+import { formatDateDDMMYY, parseDDMMYY, dateOnlyToUtcIso } from '../utils/dateFormat';
 import { attachDateRangePicker } from '../utils/dateRangePicker';
 
 function setDefaultDates(): { start: string; end: string } {
@@ -82,8 +82,8 @@ export async function renderAddProjectView(
       const endIso = d.endDate ? (parseDDMMYY(d.endDate) ?? d.endDate) : undefined;
       const payload = {
         title: d.title.trim() || 'Untitled task',
-        startDate: startIso ? new Date(startIso + 'T00:00:00').toISOString() : undefined,
-        endDate: endIso ? new Date(endIso + 'T00:00:00').toISOString() : undefined,
+        startDate: startIso ? dateOnlyToUtcIso(startIso) : undefined,
+        endDate: endIso ? dateOnlyToUtcIso(endIso) : undefined,
         status: d.status,
         priority: d.priority,
       };
@@ -255,8 +255,10 @@ export async function renderAddProjectView(
     const data = new FormData(metaForm);
     const name = String(data.get('name') ?? '').trim();
     if (!name) return null;
-    const startDate = parseDDMMYY(String(data.get('startDate') ?? ''));
-    const endDate = parseDDMMYY(String(data.get('endDate') ?? ''));
+    const rawStart = String(data.get('startDate') ?? '');
+    const rawEnd = String(data.get('endDate') ?? '');
+    const startDate = parseDDMMYY(rawStart);
+    const endDate = parseDDMMYY(rawEnd);
     if (!startDate || !endDate) {
       alert('Please enter dates in DD/MM/YY format (e.g. 14/03/25).');
       return null;
@@ -283,8 +285,8 @@ export async function renderAddProjectView(
         await updateProject(savedProjectId, {
           name: meta.name,
           description: meta.description,
-          startDate: new Date(meta.startDate + 'T00:00:00').toISOString(),
-          endDate: new Date(meta.endDate + 'T00:00:00').toISOString(),
+          startDate: dateOnlyToUtcIso(meta.startDate),
+          endDate: dateOnlyToUtcIso(meta.endDate),
           status: meta.status,
           priority: meta.priority,
         });
@@ -292,8 +294,8 @@ export async function renderAddProjectView(
         const project = await createProject({
           name: meta.name,
           description: meta.description,
-          startDate: new Date(meta.startDate + 'T00:00:00').toISOString(),
-          endDate: new Date(meta.endDate + 'T00:00:00').toISOString(),
+          startDate: dateOnlyToUtcIso(meta.startDate),
+          endDate: dateOnlyToUtcIso(meta.endDate),
           status: meta.status,
           priority: meta.priority,
         });
@@ -314,6 +316,8 @@ export async function renderAddProjectView(
   saveExitBtn.addEventListener('click', async () => {
     const meta = readMeta();
     if (!meta) return;
+    const payloadStart = dateOnlyToUtcIso(meta.startDate);
+    const payloadEnd = dateOnlyToUtcIso(meta.endDate);
     saveExitBtn.disabled = true;
     saveExitBtn.setAttribute('aria-busy', 'true');
     saveExitBtn.innerHTML =
@@ -323,8 +327,8 @@ export async function renderAddProjectView(
         await updateProject(savedProjectId, {
           name: meta.name,
           description: meta.description,
-          startDate: new Date(meta.startDate + 'T00:00:00').toISOString(),
-          endDate: new Date(meta.endDate + 'T00:00:00').toISOString(),
+          startDate: payloadStart,
+          endDate: payloadEnd,
           status: meta.status,
           priority: meta.priority,
         });
@@ -333,8 +337,8 @@ export async function renderAddProjectView(
         const project = await createProject({
           name: meta.name,
           description: meta.description,
-          startDate: new Date(meta.startDate + 'T00:00:00').toISOString(),
-          endDate: new Date(meta.endDate + 'T00:00:00').toISOString(),
+          startDate: dateOnlyToUtcIso(meta.startDate),
+          endDate: dateOnlyToUtcIso(meta.endDate),
           status: meta.status,
           priority: meta.priority,
         });
