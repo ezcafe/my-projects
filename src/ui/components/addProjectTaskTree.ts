@@ -45,6 +45,15 @@ function newTaskDraft(startDate: string, endDate: string): TaskDraft {
   };
 }
 
+/** Prefer storing ISO (YYYY-MM-DD) in drafts so formatDateDDMMYY(t.startDate) in templates displays correctly. */
+function toDraftDate(value: string | undefined, fallback: string): string {
+  if (!value) return fallback;
+  const iso = value.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  const parsed = parseDDMMYY(formatDateDDMMYY(value));
+  return parsed ?? fallback;
+}
+
 export function taskTreeToDrafts(
   nodes: TaskTreeNode[],
   defaultStart: string,
@@ -54,10 +63,8 @@ export function taskTreeToDrafts(
     id: nextDraftId(),
     dbId: node.id,
     title: node.title,
-    startDate: node.startDate
-      ? formatDateDDMMYY(node.startDate)
-      : defaultStart,
-    endDate: node.endDate ? formatDateDDMMYY(node.endDate) : defaultEnd,
+    startDate: toDraftDate(node.startDate, defaultStart),
+    endDate: toDraftDate(node.endDate, defaultEnd),
     status: node.status,
     priority: node.priority,
     subtasks: taskTreeToDrafts(node.children, defaultStart, defaultEnd),
@@ -344,8 +351,15 @@ export function createAddProjectTaskTree(
     return tasks;
   }
 
+  function deepCloneDrafts(list: TaskDraft[]): TaskDraft[] {
+    return list.map((d) => ({
+      ...d,
+      subtasks: deepCloneDrafts(d.subtasks),
+    }));
+  }
+
   function setTasks(newTasks: TaskDraft[]): void {
-    tasks = [...newTasks];
+    tasks = deepCloneDrafts(newTasks);
   }
 
   refresh();

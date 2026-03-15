@@ -51,6 +51,136 @@
   filter: brightness(0.92);
 }
 
+/* Bar hover tooltip */
+.gantt-tooltip {
+  position: fixed;
+  z-index: 1000;
+  visibility: hidden;
+  max-width: 280px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #1f2937;
+  background: #fff;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  pointer-events: none;
+}
+
+.gantt-tooltip.gantt-tooltip--visible {
+  visibility: visible;
+}
+
+.gantt-tooltip__title {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  margin: 0 0 0.5rem 0;
+  color: #111827;
+}
+
+.gantt-tooltip__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.gantt-tooltip__meta dt {
+  margin: 0;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.gantt-tooltip__meta dd {
+  margin: 0;
+}
+
+.gantt-tooltip__badge {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.gantt-tooltip__badge--priority {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.gantt-tooltip__badge--status {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.gantt-tooltip__section {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.gantt-tooltip__section-title {
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.25rem;
+}
+
+.gantt-tooltip__milestones {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.gantt-tooltip__milestones li {
+  margin: 0.125rem 0;
+}
+
+.gantt-tooltip__no-milestones {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .gantt-tooltip {
+  color: #e2e8f0;
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .gantt-tooltip__title {
+  color: #f1f5f9;
+}
+
+[data-theme='dark'] .gantt-tooltip__meta dt {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .gantt-tooltip__badge--priority {
+  background: #4c1d95;
+  color: #c4b5fd;
+}
+
+[data-theme='dark'] .gantt-tooltip__badge--status {
+  background: #1e3a8a;
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .gantt-tooltip__section {
+  border-top-color: #334155;
+}
+
+[data-theme='dark'] .gantt-tooltip__section-title {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .gantt-tooltip__no-milestones {
+  color: #64748b;
+}
+
 .gantt-bar-label {
   font-size: 0.75rem;
   fill: #fff;

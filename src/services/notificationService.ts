@@ -76,14 +76,33 @@ function showNotification(title: string, body: string, tag: string): void {
   }
 }
 
-const MILESTONE_LABELS: Record<number, string> = {
-  7: 'due in 1 week',
-  14: 'due in 2 weeks',
-  30: 'due in 1 month',
+type ReminderCategory =
+  | 'finish-today'
+  | 'due-1-week'
+  | 'due-2-weeks'
+  | 'due-1-month'
+  | 'start-today';
+
+const CATEGORY_ORDER: ReminderCategory[] = [
+  'finish-today',
+  'due-1-week',
+  'due-2-weeks',
+  'due-1-month',
+  'start-today',
+];
+
+const CATEGORY_HEADERS: Record<ReminderCategory, string> = {
+  'finish-today': 'Due to finish today:',
+  'due-1-week': 'Due in 1 week:',
+  'due-2-weeks': 'Due in 2 weeks:',
+  'due-1-month': 'Due in 1 month:',
+  'start-today': 'Start today:',
 };
 
 interface ReminderEvent {
-  label: string;
+  category: ReminderCategory;
+  /** Display line: "Project name" or "Project name - Task name" */
+  itemLabel: string;
 }
 
 function collectProjectEvents(
@@ -95,20 +114,19 @@ function collectProjectEvents(
   const endKey = toLocalDateKey(new Date(project.endDate));
 
   if (startKey === todayKey) {
-    events.push({ label: `${project.name} — starts today` });
+    events.push({ category: 'start-today', itemLabel: project.name });
   }
   if (endKey === todayKey) {
-    events.push({ label: `${project.name} — due to finish today` });
+    events.push({ category: 'finish-today', itemLabel: project.name });
   }
 
   const endDate = new Date(project.endDate);
   const milestoneDates = getMilestoneDates(endDate);
-  const offsets = [7, 14, 30];
+  const offsets: ReminderCategory[] = ['due-1-week', 'due-2-weeks', 'due-1-month'];
   for (let i = 0; i < milestoneDates.length; i++) {
     const mKey = toLocalDateKey(milestoneDates[i]);
     if (mKey === todayKey) {
-      const milestoneLabel = MILESTONE_LABELS[offsets[i]] ?? `due in ${offsets[i]} days`;
-      events.push({ label: `${project.name} — ${milestoneLabel}` });
+      events.push({ category: offsets[i], itemLabel: project.name });
       break;
     }
   }
@@ -121,19 +139,39 @@ function collectTaskEvents(
   todayKey: string,
 ): ReminderEvent[] {
   const events: ReminderEvent[] = [];
+  const taskItemLabel = `${projectName} - ${task.title}`;
   if (task.startDate) {
     const startKey = toLocalDateKey(new Date(task.startDate));
     if (startKey === todayKey) {
-      events.push({ label: `${task.title} (${projectName}) — starts today` });
+      events.push({ category: 'start-today', itemLabel: taskItemLabel });
     }
   }
   if (task.endDate) {
     const endKey = toLocalDateKey(new Date(task.endDate));
     if (endKey === todayKey) {
-      events.push({ label: `${task.title} (${projectName}) — due today` });
+      events.push({ category: 'finish-today', itemLabel: taskItemLabel });
     }
   }
   return events;
+}
+
+function buildGroupedBody(events: ReminderEvent[]): string {
+  const byCategory = new Map<ReminderCategory, string[]>();
+  for (const e of events) {
+    const list = byCategory.get(e.category) ?? [];
+    list.push(e.itemLabel);
+    byCategory.set(e.category, list);
+  }
+  const parts: string[] = [];
+  for (const cat of CATEGORY_ORDER) {
+    const items = byCategory.get(cat);
+    if (!items || items.length === 0) continue;
+    parts.push(CATEGORY_HEADERS[cat]);
+    items.forEach((label, i) => {
+      parts.push(`  ${i + 1}. ${label}`);
+    });
+  }
+  return parts.join('\n');
 }
 
 export function checkAndNotify(
@@ -165,10 +203,7 @@ export function checkAndNotify(
     count === 1
       ? "Here's what's on your plate today"
       : `You have ${count} reminders today`;
-  const body =
-    count === 1
-      ? allEvents[0].label
-      : allEvents.map((e) => `• ${e.label}`).join('\n');
+  const body = buildGroupedBody(allEvents);
   const tag = `grouped:${todayKey}`;
   showNotification(title, body, tag);
   markGroupedSent(todayKey);

@@ -10,7 +10,12 @@ export function formatDateDDMMYY(date: Date | string): string {
     if (/^\d{4}-\d{2}-\d{2}$/.test(isoDateOnly)) {
       d = new Date(isoDateOnly + 'T00:00:00');
     } else {
-      d = new Date(date);
+      const parsed = parseDDMMYY(date);
+      if (parsed) {
+        d = new Date(parsed + 'T00:00:00');
+      } else {
+        d = new Date(date);
+      }
     }
   } else {
     d = date;
@@ -57,4 +62,33 @@ export function parseDDMMYY(str: string): string | null {
 export function dateOnlyToUtcIso(isoDateOnly: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDateOnly)) return new Date(isoDateOnly).toISOString();
   return isoDateOnly + 'T00:00:00.000Z';
+}
+
+/**
+ * Parse a date string (YYYY-MM-DD or DD/MM/YY) to days since Unix epoch (UTC date only).
+ */
+function toDays(isoOrDdMmYy: string): number {
+  const iso = parseDDMMYY(isoOrDdMmYy) ?? isoOrDdMmYy.slice(0, 10);
+  const d = new Date(iso + 'T00:00:00.000Z');
+  return Math.floor(d.getTime() / 86400000);
+}
+
+/**
+ * Add days to a date-only string. Returns YYYY-MM-DD.
+ */
+export function addDays(isoDateOnly: string, days: number): string {
+  const d = new Date(isoDateOnly + 'T00:00:00.000Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
+ * Number of days from first date to second (second - first).
+ * Both should be YYYY-MM-DD or parseable DD/MM/YY.
+ */
+export function daysBetween(fromIso: string, toIso: string): number {
+  return toDays(toIso) - toDays(fromIso);
 }

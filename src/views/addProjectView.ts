@@ -25,8 +25,45 @@ import {
 } from '../ui/components/addProjectTaskTree';
 import { goToHome } from '../router';
 import { parseImportFile } from '../services/exportImportService';
-import { formatDateDDMMYY, parseDDMMYY, dateOnlyToUtcIso } from '../utils/dateFormat';
+import {
+  formatDateDDMMYY,
+  parseDDMMYY,
+  dateOnlyToUtcIso,
+  addDays,
+  daysBetween,
+} from '../utils/dateFormat';
 import { attachDateRangePicker } from '../utils/dateRangePicker';
+
+/**
+ * Shift all task/subtask dates by the same number of days (from project start change).
+ * Preserves duration; caps task end date to project end date if it would exceed.
+ */
+function shiftDraftDates(
+  drafts: TaskDraft[],
+  shiftDays: number,
+  projectEndIso: string,
+): TaskDraft[] {
+  return drafts.map((d) => {
+    const startIso = parseDDMMYY(d.startDate) ?? (d.startDate.length >= 10 ? d.startDate.slice(0, 10) : null);
+    const endIso = parseDDMMYY(d.endDate) ?? (d.endDate.length >= 10 ? d.endDate.slice(0, 10) : null);
+    if (!startIso || !endIso || !/^\d{4}-\d{2}-\d{2}$/.test(startIso) || !/^\d{4}-\d{2}-\d{2}$/.test(endIso)) {
+      return {
+        ...d,
+        subtasks: shiftDraftDates(d.subtasks, shiftDays, projectEndIso),
+      };
+    }
+    let newStart = addDays(startIso, shiftDays);
+    let newEnd = addDays(endIso, shiftDays);
+    if (newEnd > projectEndIso) newEnd = projectEndIso;
+    if (newStart > newEnd) newStart = newEnd;
+    return {
+      ...d,
+      startDate: newStart,
+      endDate: newEnd,
+      subtasks: shiftDraftDates(d.subtasks, shiftDays, projectEndIso),
+    };
+  });
+}
 
 function setDefaultDates(): { start: string; end: string } {
   const today = new Date();
@@ -273,9 +310,42 @@ export async function renderAddProjectView(
     };
   }
 
+  /** If project dates changed in edit mode, ask to auto-update task dates and apply shift. Updates `dates` and task tree when confirmed. */
+  async function applyProjectDateChangeIfConfirmed(meta: {
+    startDate: string;
+    endDate: string;
+  }): Promise<void> {
+    if (savedProjectId == null) return;
+    const oldStartIso = parseDDMMYY(dates.start) ?? dates.start.slice(0, 10);
+    const oldEndIso = parseDDMMYY(dates.end) ?? dates.end.slice(0, 10);
+    const datesChanged =
+      meta.startDate !== oldStartIso || meta.endDate !== oldEndIso;
+    const taskList = taskTree.getTasks();
+    const hasTasks = taskList.length > 0;
+    if (!datesChanged || !hasTasks) return;
+
+    const confirmed = await confirmDialog({
+      title: 'Update task dates?',
+      message:
+        'Project dates have changed. Auto-update task and subtask dates to follow the new project range? ' +
+        'Tasks will be shifted by the same number of days; if a task would end after the new project end date, its end date will be set to the project end date.',
+      confirmLabel: 'Yes, update task dates',
+    });
+    if (!confirmed) return;
+
+    const shiftDays = daysBetween(oldStartIso, meta.startDate);
+    taskTree.setTasks(shiftDraftDates(taskList, shiftDays, meta.endDate));
+    taskTree.refresh();
+    dates = {
+      start: formatDateDDMMYY(meta.startDate),
+      end: formatDateDDMMYY(meta.endDate),
+    };
+  }
+
   saveBtn.addEventListener('click', async () => {
     const meta = readMeta();
     if (!meta) return;
+    await applyProjectDateChangeIfConfirmed(meta);
     const originalSaveText = saveBtn.textContent;
     saveBtn.disabled = true;
     saveBtn.setAttribute('aria-busy', 'true');
@@ -316,6 +386,7 @@ export async function renderAddProjectView(
   saveExitBtn.addEventListener('click', async () => {
     const meta = readMeta();
     if (!meta) return;
+    await applyProjectDateChangeIfConfirmed(meta);
     const payloadStart = dateOnlyToUtcIso(meta.startDate);
     const payloadEnd = dateOnlyToUtcIso(meta.endDate);
     saveExitBtn.disabled = true;

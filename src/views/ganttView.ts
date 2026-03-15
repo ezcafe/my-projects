@@ -281,6 +281,74 @@ function visibleBarRange(
 
 const BAR_RADIUS = 6;
 
+function escapeHtml(s: string): string {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  NotStarted: 'Not started',
+  InProgress: 'In progress',
+  Blocked: 'Blocked',
+  Done: 'Done',
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  Low: 'Low',
+  Medium: 'Medium',
+  High: 'High',
+  Critical: 'Critical',
+};
+
+const MILESTONE_LABELS = ['1 week before end', '2 weeks before end', '1 month before end'] as const;
+
+function formatShortDate(d: Date): string {
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+function formatProjectDateRange(project: Project): string {
+  const start = formatShortDate(new Date(project.startDate));
+  const end = formatShortDate(new Date(project.endDate));
+  return `${start} – ${end}`;
+}
+
+function getMilestoneLines(project: Project): string[] {
+  const endDate = new Date(project.endDate);
+  const dates = getMilestoneDates(endDate, MILESTONE_OFFSETS_DAYS);
+  const reversedDates = [...dates].reverse();
+  const reversedLabels = [...MILESTONE_LABELS].reverse();
+  return reversedDates.map((d, i) => `${reversedLabels[i] ?? `${i + 1}`} — ${formatShortDate(d)}`);
+}
+
+function buildBarTooltipHtml(project: Project): string {
+  const name = escapeHtml(project.name);
+  const status = STATUS_LABELS[project.status] ?? project.status;
+  const priority = PRIORITY_LABELS[project.priority] ?? project.priority;
+  const dateRange = formatProjectDateRange(project);
+  const milestoneLines = getMilestoneLines(project);
+  const milestonesHtml =
+    milestoneLines.length > 0
+      ? `<ul class="gantt-tooltip__milestones">${milestoneLines.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`
+      : '<p class="gantt-tooltip__no-milestones">No milestones in range.</p>';
+  return `
+    <div class="gantt-tooltip__title">${name}</div>
+    <dl class="gantt-tooltip__meta">
+      <dt>Priority</dt><dd><span class="gantt-tooltip__badge gantt-tooltip__badge--priority">${escapeHtml(priority)}</span></dd>
+      <dt>Status</dt><dd><span class="gantt-tooltip__badge gantt-tooltip__badge--status">${escapeHtml(status)}</span></dd>
+      <dt>Date</dt><dd>${escapeHtml(dateRange)}</dd>
+    </dl>
+    <div class="gantt-tooltip__section">
+      <div class="gantt-tooltip__section-title">Milestones</div>
+      ${milestonesHtml}
+    </div>
+  `;
+}
+
 /** Path `d` for a bar with optional left/right border radius (only when that edge is inside viewport). */
 function ganttBarPathD(
   barLeft: number,
@@ -469,10 +537,12 @@ function drawGantt(
     const fullDurationMs = fullRangeEnd.getTime() - fullRangeStart.getTime();
     contentWidth = (fullDurationMs / viewportDurationMs) * chartWidth;
     chartRightEdge = MARGIN.left + chartWidth;
+    /* When content is narrower than viewport, span the scale over full viewport so ticks fill the width */
+    const scaleRangeRight = Math.max(contentWidth, chartWidth);
     xScale = d3
       .scaleTime()
       .domain([fullRangeStart, fullRangeEnd])
-      .range([MARGIN.left, MARGIN.left + contentWidth]);
+      .range([MARGIN.left, MARGIN.left + scaleRangeRight]);
     if (container && contentWidth > chartWidth) {
       if (zoomLevel === 'day') container.__dayPanTransformDx = 0;
       else if (zoomLevel === 'month') container.__monthPanTransformDx = 0;
@@ -513,8 +583,8 @@ function drawGantt(
       .attr('class', 'gantt-chart-content')
       .attr('transform', `translate(${MARGIN.left - viewportClipX},0)`);
     if (contentWidth <= chartWidth && container) {
-      const storedDx = zoomLevel === 'day' ? (container.__dayPanTransformDx ?? 0) : zoomLevel === 'month' ? (container.__monthPanTransformDx ?? 0) : (container.__quarterPanTransformDx ?? 0);
-      chartContentGroup.attr('transform', `translate(${MARGIN.left + storedDx},0)`);
+      /* Scale already spans viewport; keep content at viewport left (no pan offset when narrow) */
+      chartContentGroup.attr('transform', 'translate(0,0)');
     }
   } else {
     chartContentGroup = svg
@@ -528,7 +598,10 @@ function drawGantt(
     .attr('class', 'gantt-axis-container')
     .attr('transform', 'translate(0,0)');
 
-  const axisRightX = usePannableRange ? MARGIN.left + contentWidth : width;
+  /* When content is narrow, span axis/borders to full viewport (match scale range) */
+  const axisRightX = usePannableRange
+    ? MARGIN.left + Math.max(contentWidth, chartWidth)
+    : width;
   const axisLevel1RightX =
     usePannableRange && (zoomLevel === 'month' || zoomLevel === 'quarter')
       ? MARGIN.left + chartWidth
@@ -536,9 +609,9 @@ function drawGantt(
   axisContainer
     .append('line')
     .attr('class', 'gantt-axis-level1-border-left')
-    .attr('x1', 0)
+    .attr('x1', MARGIN.left)
     .attr('y1', AXIS_ROW1_TOP)
-    .attr('x2', 0)
+    .attr('x2', MARGIN.left)
     .attr('y2', AXIS_LEVEL1_HEIGHT);
   axisContainer
     .append('line')
@@ -578,11 +651,15 @@ function drawGantt(
         : usePannableRange && zoomLevel === 'quarter'
           ? d3.timeYears(d3.timeYear(level1RangeStart), level1RangeEnd)
           : timeline.tickValuesLevel1;
-  const level1BoundaryX = [
+  /* When pannable, draw full range so panned view shows axis/time-sticks without redraw; clip path hides out-of-viewport. */
+  const level1BoundaryXFiltered = [
     xScale(level1RangeStart),
     ...level1BoundaryDates.map((d) => xScale(d)),
     xScale(level1RangeEnd),
-  ].filter((x) => x >= MARGIN.left && x <= chartRight);
+  ];
+  const level1BoundaryX = usePannableRange
+    ? level1BoundaryXFiltered
+    : level1BoundaryXFiltered.filter((x) => x >= MARGIN.left && x <= chartRight);
 
   axisContainer
     .selectAll('line.gantt-axis-boundary')
@@ -653,19 +730,37 @@ function drawGantt(
     .attr('dominant-baseline', 'middle')
     .text((d) => d.label);
 
+  /* Viewport-only ticks for top level2 axis (readable labels). */
   const fullRangeTickValues =
     usePannableRange && timeline.fullRange && zoomLevel === 'day'
       ? (() => {
-          const tickCount = Math.max(1, Math.floor(contentWidth / TICK_PX));
-          const startT = fullRangeStart.getTime();
-          const endT = fullRangeEnd.getTime();
+          const tickCount = Math.max(1, Math.floor(chartWidth / TICK_PX));
+          const startT = timeline.start.getTime();
+          const endT = timeline.end.getTime();
           return d3.range(tickCount + 1).map((i) => new Date(startT + (i / tickCount) * (endT - startT)));
         })()
       : timeline.tickValues;
+
+  /* Full-range ticks for time-sticks and bottom axis so they render for entire content on first load. */
+  const fullRangeTickValuesForDrawing =
+    usePannableRange && timeline.fullRange
+      ? zoomLevel === 'day'
+        ? d3.timeDays(fullRangeStart, d3.timeDay.offset(fullRangeEnd, 1))
+        : zoomLevel === 'month'
+          ? d3.timeMonths(fullRangeStart, d3.timeMonth.offset(fullRangeEnd, 1))
+          : (() => {
+              const qs: Date[] = [];
+              let q = startOfQuarter(fullRangeStart);
+              if (q < fullRangeStart) q = addQuarters(q, 1);
+              for (; q <= fullRangeEnd; q = addQuarters(q, 1)) qs.push(new Date(q));
+              return qs;
+            })()
+      : fullRangeTickValues;
   const axisLevel2Format = zoomLevel === 'day' && usePannableRange ? (d: Date) => d.getDate().toString() : timeline.tickFormat;
+  /* Use full-range ticks when pannable so level2 text is pre-rendered for pan (clip shows viewport only). */
   const axisLevel2 = d3
     .axisBottom<Date>(xScale)
-    .tickValues(fullRangeTickValues)
+    .tickValues(fullRangeTickValuesForDrawing)
     .tickFormat(axisLevel2Format as (d: d3.NumberValue) => string);
 
   axisContainer
@@ -692,9 +787,9 @@ function drawGantt(
   axisContainerBottom
     .append('line')
     .attr('class', 'gantt-axis-level1-border-left')
-    .attr('x1', 0)
+    .attr('x1', MARGIN.left)
     .attr('y1', 0)
-    .attr('x2', 0)
+    .attr('x2', MARGIN.left)
     .attr('y2', AXIS_LEVEL1_HEIGHT + AXIS_LEVEL2_HEIGHT);
   axisContainerBottom
     .append('line')
@@ -711,8 +806,8 @@ function drawGantt(
     .attr('x2', axisLevel1RightX)
     .attr('y2', AXIS_LEVEL2_HEIGHT);
 
-  /* Row 1 (top of bottom axis): level 2 boundaries – same x, height and color as top, opposite direction (bottom of row upward) */
-  const level2BoundaryXBottom = fullRangeTickValues.map((d) => xScale(d));
+  /* Row 1 (top of bottom axis): level 2 boundaries – use full range when pannable so stripes render on first load */
+  const level2BoundaryXBottom = fullRangeTickValuesForDrawing.map((d) => xScale(d));
   axisContainerBottom
     .selectAll('line.gantt-axis-boundary-level2-bottom')
     .data(level2BoundaryXBottom)
@@ -723,12 +818,12 @@ function drawGantt(
     .attr('y1', AXIS_LEVEL2_HEIGHT)
     .attr('y2', AXIS_LEVEL2_HEIGHT - AXIS_LEVEL2_TICK_LINE_HEIGHT);
 
-  /* Row 1: level 2 tick labels */
-  const level2LabelData = fullRangeTickValues.map((d, i) => ({
+  /* Row 1: level 2 tick labels (full range when pannable) */
+  const level2LabelData = fullRangeTickValuesForDrawing.map((d, i) => ({
     x: xScale(d),
     label: axisLevel2Format(d),
     index: i,
-    total: fullRangeTickValues.length,
+    total: fullRangeTickValuesForDrawing.length,
   }));
   axisContainerBottom
     .append('g')
@@ -812,6 +907,15 @@ function drawGantt(
     }
   };
 
+  let tooltipEl: HTMLDivElement | null = container?.querySelector<HTMLDivElement>('.gantt-tooltip') ?? null;
+  if (container && !tooltipEl) {
+    tooltipEl = document.createElement('div');
+    tooltipEl.className = 'gantt-tooltip';
+    tooltipEl.setAttribute('role', 'tooltip');
+    tooltipEl.setAttribute('aria-hidden', 'true');
+    container.appendChild(tooltipEl);
+  }
+
   const barGroups = barsGroup
     .selectAll('g.gantt-bar-group')
     .data(visibleProjects)
@@ -823,6 +927,26 @@ function drawGantt(
     .style('cursor', 'pointer')
     .on('click', (_, d) => {
       goToProject(d.id);
+    })
+    .on('mouseenter', function (_, d: Project) {
+      if (!tooltipEl) return;
+      tooltipEl.innerHTML = buildBarTooltipHtml(d);
+      tooltipEl.setAttribute('aria-hidden', 'false');
+      const rect = (this as SVGGElement).getBoundingClientRect();
+      const tipRect = tooltipEl.getBoundingClientRect();
+      const gap = 8;
+      let left = rect.left + rect.width / 2 - tipRect.width / 2;
+      let top = rect.top - tipRect.height - gap;
+      if (left < 8) left = 8;
+      if (left + tipRect.width > window.innerWidth - 8) left = window.innerWidth - tipRect.width - 8;
+      if (top < 8) top = rect.bottom + gap;
+      tooltipEl.style.left = `${left}px`;
+      tooltipEl.style.top = `${top}px`;
+      tooltipEl.classList.add('gantt-tooltip--visible');
+    })
+    .on('mouseleave', () => {
+      tooltipEl?.classList.remove('gantt-tooltip--visible');
+      tooltipEl?.setAttribute('aria-hidden', 'true');
     });
 
   const palette = getGanttPaletteForTheme(getTheme());
@@ -930,7 +1054,7 @@ function drawGantt(
     .lower();
 
   const timeStickHeight = containerHeight - 32;
-  const level2BoundaryX = fullRangeTickValues.map((d) => xScale(d));
+  const level2BoundaryX = fullRangeTickValuesForDrawing.map((d) => xScale(d));
   const timeStickSegments = d3.range(level2BoundaryX.length - 1).map((i) => ({
     xStart: level2BoundaryX[i],
     xEnd: level2BoundaryX[i + 1],
@@ -1034,6 +1158,8 @@ function drawGantt(
       );
       setViewportStart(newViewportStart);
       setPanTransformDx(panAccumulatedDx);
+      /* Redraw so ticks align to new viewport (first tick at viewport left, no gap) */
+      drawGantt(svgEl, projects, zoomLevel);
     }
   };
 
@@ -1062,6 +1188,14 @@ function drawGantt(
           const panStartDate = new Date(panStartViewportStart);
           panMinDx = xScale(panStartDate) - xScale(fullRangeEnd) + chartWidth;
           panMaxDx = xScale(panStartDate) - xScale(fullRangeStart);
+          /* Never allow panning past start: viewport left must not go left of fullRangeStart (no empty space) */
+          const atStart = panStartViewportStart <= fullStartTime + 1;
+          if (atStart) {
+            panMaxDx = 0;
+            panAccumulatedDx = Math.min(0, panAccumulatedDx);
+          } else {
+            panMaxDx = Math.min(panMaxDx, xScale(panStartDate));
+          }
           if (contentWidth <= chartWidth) {
             panMinDx = 0;
             panMaxDx = chartWidth - contentWidth;
@@ -1082,7 +1216,9 @@ function drawGantt(
       if (panActive) {
         const beforeClamp = getPanTransformDx() + dx;
         panAccumulatedDx = Math.max(panMinDx, Math.min(panMaxDx, beforeClamp));
-        const tx = MARGIN.left - xScale(new Date(panStartViewportStart!)) + panAccumulatedDx;
+        let tx = MARGIN.left - xScale(new Date(panStartViewportStart!)) + panAccumulatedDx;
+        /* Never show empty space on left: viewport left must not go past fullRangeStart (group x=0) */
+        tx = Math.min(tx, 0);
         chartContentGroup.attr('transform', `translate(${tx},0)`);
       } else if (zoomGesture && primarilyVertical && zoomLevel === 'day') {
         const direction = dy > 0 ? 'out' : 'in';
@@ -1130,6 +1266,13 @@ function drawGantt(
           const touchPanStartDate = new Date(touchPanStartViewportStart);
           touchPanMinDx = xScale(touchPanStartDate) - xScale(fullRangeEnd) + chartWidth;
           touchPanMaxDx = xScale(touchPanStartDate) - xScale(fullRangeStart);
+          const touchAtStart = touchPanStartViewportStart <= fullStartTime + 1;
+          if (touchAtStart) {
+            touchPanMaxDx = 0;
+            touchPanAccumulatedDx = Math.min(0, touchPanAccumulatedDx);
+          } else {
+            touchPanMaxDx = Math.min(touchPanMaxDx, xScale(touchPanStartDate));
+          }
           if (contentWidth <= chartWidth) {
             touchPanMinDx = 0;
             touchPanMaxDx = chartWidth - contentWidth;
@@ -1155,7 +1298,8 @@ function drawGantt(
           touchPanMinDx,
           Math.min(touchPanMaxDx, touchPanAccumulatedDx + dx),
         );
-        const tx = MARGIN.left - xScale(new Date(touchPanStartViewportStart!)) + touchPanAccumulatedDx;
+        let tx = MARGIN.left - xScale(new Date(touchPanStartViewportStart!)) + touchPanAccumulatedDx;
+        tx = Math.min(tx, 0);
         chartContentGroup.attr('transform', `translate(${tx},0)`);
         touchStart = { x, y };
       } else if (touchZoomGesture && touchPrimarilyVertical && zoomLevel === 'day') {
