@@ -31,6 +31,21 @@ function subtasksIconSvg(): string {
 function blockedIconSvg(): string {
   return `<svg class="kanban-card-blocked-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="5.25"/><path d="M3.5 3.5l7 7"/></svg>`;
 }
+
+/** Inline SVG: late indicator (clock / overdue). */
+function lateIconSvg(): string {
+  return `<svg class="kanban-card-late-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="5.25"/><path d="M7 3.5v3.5l2.5 2.5"/></svg>`;
+}
+
+/** Returns today's date as YYYY-MM-DD for comparison with task startDate. */
+function todayIso(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 type KanbanStatus = (typeof KANBAN_STATUSES)[number];
 
 function escapeHtml(s: string): string {
@@ -95,16 +110,23 @@ function renderKanbanColumn(
         const priorityTitle = priorityLabel(t.priority);
         const showPriority = t.priority === 'High' || t.priority === 'Critical';
         const isBlocked = t.status === 'Blocked';
+        const isLate =
+          t.status === 'NotStarted' &&
+          t.startDate != null &&
+          t.startDate.trim() !== '' &&
+          t.startDate < todayIso();
         const metaIcons = [
           isBlocked ? `<span class="kanban-card-blocked" title="Blocked">${blockedIconSvg()}</span>` : '',
-          showPriority ? `<span class="kanban-card-priority" title="Priority: ${priorityTitle}">${priorityIconSvg(t.priority)}</span>` : '',
+          isLate ? `<span class="kanban-card-late" title="Late (start date passed)">${lateIconSvg()}</span>` : '',
+          showPriority ? `<span class="kanban-card-priority" title="${escapeHtml(priorityTitle)} priority">${priorityIconSvg(t.priority)}</span>` : '',
           subtasks ? `<span class="kanban-card-subtasks" title="Has subtasks">${subtasksIconSvg()}</span>` : '',
         ].filter(Boolean).join('');
         const statusPart = isBlocked ? ', blocked' : '';
+        const latePart = isLate ? ', late' : '';
         const priorityMod = t.priority === 'High' ? ' kanban-card--priority-high' : t.priority === 'Critical' ? ' kanban-card--priority-critical' : '';
-        const cardClass = `kanban-card${isBlocked ? ' kanban-card--blocked' : ''}${priorityMod}`;
+        const cardClass = `kanban-card${isBlocked ? ' kanban-card--blocked' : ''}${isLate ? ' kanban-card--late' : ''}${priorityMod}`;
         return `
-        <div class="${cardClass}" draggable="true" data-task-id="${t.id}" aria-label="Task: ${escapeHtml(t.title)}${statusPart}${subtasks ? ', has subtasks' : ''}, priority ${priorityTitle}">
+        <div class="${cardClass}" draggable="true" data-task-id="${t.id}" aria-label="Task: ${escapeHtml(t.title)}${statusPart}${latePart}${subtasks ? ', has subtasks' : ''}, priority ${priorityTitle}">
           <span class="kanban-card-title">${escapeHtml(t.title)}</span>
           ${metaIcons ? `<span class="kanban-card-meta">${metaIcons}</span>` : ''}
         </div>

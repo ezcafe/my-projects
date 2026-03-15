@@ -261,14 +261,6 @@
   border-color: #fecaca;
 }
 
-.kanban-card--priority-high {
-  border-color: #f97316;
-}
-
-.kanban-card--priority-critical {
-  border-color: #dc2626;
-}
-
 .kanban-card-priority {
   flex-shrink: 0;
   display: inline-flex;
@@ -323,6 +315,16 @@
 
 .kanban-card-blocked-icon {
   color: #b91c1c;
+}
+
+.kanban-card-late {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.kanban-card-late-icon {
+  color: #d97706;
 }
 
 .kanban-card-subtasks {
@@ -574,14 +576,6 @@
 [data-theme='dark'] .kanban-card--blocked {
   background: #450a0a;
   border-color: #7f1d1d;
-}
-
-[data-theme='dark'] .kanban-card--priority-high {
-  border-color: #fb923c;
-}
-
-[data-theme='dark'] .kanban-card--priority-critical {
-  border-color: #f87171;
 }
 
 [data-theme='dark'] .kanban-card-title {
