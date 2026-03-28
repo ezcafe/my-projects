@@ -96,24 +96,6 @@
   margin: 0;
 }
 
-.gantt-tooltip__badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.gantt-tooltip__badge--priority {
-  background: #ede9fe;
-  color: #5b21b6;
-}
-
-.gantt-tooltip__badge--status {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
 .gantt-tooltip__section {
   margin-top: 0.5rem;
   padding-top: 0.5rem;
@@ -157,16 +139,6 @@
 
 [data-theme='dark'] .gantt-tooltip__meta dt {
   color: #94a3b8;
-}
-
-[data-theme='dark'] .gantt-tooltip__badge--priority {
-  background: #4c1d95;
-  color: #c4b5fd;
-}
-
-[data-theme='dark'] .gantt-tooltip__badge--status {
-  background: #1e3a8a;
-  color: #93c5fd;
 }
 
 [data-theme='dark'] .gantt-tooltip__section {

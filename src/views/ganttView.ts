@@ -322,7 +322,7 @@ function getMilestoneLines(project: Project): string[] {
   const dates = getMilestoneDates(endDate, MILESTONE_OFFSETS_DAYS);
   const reversedDates = [...dates].reverse();
   const reversedLabels = [...MILESTONE_LABELS].reverse();
-  return reversedDates.map((d, i) => `${reversedLabels[i] ?? `${i + 1}`} — ${formatShortDate(d)}`);
+  return reversedDates.map((d, i) => `${formatShortDate(d)} — ${reversedLabels[i] ?? `${i + 1}`}`);
 }
 
 function buildBarTooltipHtml(project: Project): string {
@@ -338,8 +338,8 @@ function buildBarTooltipHtml(project: Project): string {
   return `
     <div class="gantt-tooltip__title">${name}</div>
     <dl class="gantt-tooltip__meta">
-      <dt>Priority</dt><dd><span class="gantt-tooltip__badge gantt-tooltip__badge--priority">${escapeHtml(priority)}</span></dd>
-      <dt>Status</dt><dd><span class="gantt-tooltip__badge gantt-tooltip__badge--status">${escapeHtml(status)}</span></dd>
+      <dt>Priority</dt><dd><span class="badge badge-priority-${project.priority}">${escapeHtml(priority)}</span></dd>
+      <dt>Status</dt><dd><span class="badge badge-status-${project.status}">${escapeHtml(status)}</span></dd>
       <dt>Date</dt><dd>${escapeHtml(dateRange)}</dd>
     </dl>
     <div class="gantt-tooltip__section">

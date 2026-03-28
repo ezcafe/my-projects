@@ -157,6 +157,8 @@ function renderTaskNode(t: TaskDraft, depth: number, collapsedIds: Set<string>):
   const hasSubtasks = t.subtasks.length > 0;
   const level = taskLevelFromDepth(depth);
   const canAddSubtask = level < TASK_MAX_LEVEL;
+  /** Level 1 = top-level tasks only; subtasks (level 2+) have no date UI. */
+  const showTaskDateUi = level === 1;
   const isCollapsed = hasSubtasks && collapsedIds.has(t.id);
   const childrenClass =
     hasSubtasks && isCollapsed
@@ -179,15 +181,15 @@ function renderTaskNode(t: TaskDraft, depth: number, collapsedIds: Set<string>):
             <input type="text" class="add-project-task-title" data-field="title" placeholder="Task title" value="${escapeHtml(t.title)}" autocomplete="off" />
           </label>
           <div class="add-project-task-actions" role="group" aria-label="Task actions">
-            <button type="button" class="btn btn-small btn-ghost add-project-task-btn-add" data-action="add-subtask" aria-label="Add subtask" ${canAddSubtask ? '' : `disabled aria-disabled="true" title="Maximum ${TASK_MAX_LEVEL} levels reached"`}><span aria-hidden="true">+</span> Subtask</button>
+            ${canAddSubtask ? '<button type="button" class="btn btn-small btn-ghost add-project-task-btn-add" data-action="add-subtask" aria-label="Add subtask"><span aria-hidden="true">+</span> Subtask</button>' : ''}
             <button type="button" class="btn btn-small btn-ghost btn-danger add-project-task-btn-remove" data-action="remove" aria-label="Remove task"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg> Remove</button>
           </div>
         </div>
         <div class="add-project-task-row-line2">
-          <label class="add-project-task-date-wrap">
+          ${showTaskDateUi ? `<label class="add-project-task-date-wrap">
             <span class="visually-hidden">Start and end date</span>
             <input type="text" class="add-project-task-date add-project-task-date-range-display" placeholder="DD/MM/YY — DD/MM/YY" title="Dates" value="${formatDateDDMMYY(t.startDate)} — ${formatDateDDMMYY(t.endDate)}" autocomplete="off" />
-          </label>
+          </label>` : ''}
           <input type="hidden" data-field="startDate" value="${formatDateDDMMYY(t.startDate)}" />
           <input type="hidden" data-field="endDate" value="${formatDateDDMMYY(t.endDate)}" />
           <label class="add-project-task-status-wrap">
@@ -273,18 +275,17 @@ export function createAddProjectTaskTree(
       const displayEl = node.querySelector<HTMLInputElement>('.add-project-task-date-range-display');
       const startInput = node.querySelector<HTMLInputElement>('input[data-field="startDate"]');
       const endInput = node.querySelector<HTMLInputElement>('input[data-field="endDate"]');
-      if (displayEl && startInput && endInput) {
-        const draftId = node.getAttribute('data-draft-id')!;
-        attachDateRangePicker(displayEl, startInput, endInput, {
-          onRangeSelected: (startFormatted, endFormatted) => {
-            tasks = replaceDraft(tasks, draftId, (d) => ({
-              ...d,
-              startDate: startFormatted,
-              endDate: endFormatted,
-            }));
-          },
-        });
-      }
+      if (!displayEl || !startInput || !endInput) return;
+      const draftId = node.getAttribute('data-draft-id')!;
+      attachDateRangePicker(displayEl, startInput, endInput, {
+        onRangeSelected: (startFormatted, endFormatted) => {
+          tasks = replaceDraft(tasks, draftId, (d) => ({
+            ...d,
+            startDate: startFormatted,
+            endDate: endFormatted,
+          }));
+        },
+      });
     });
   }
 

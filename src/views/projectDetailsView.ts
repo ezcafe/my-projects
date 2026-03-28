@@ -164,7 +164,8 @@ export async function renderProjectDetailsView(
   }
 
   const tasks = await listTasksForProject(projectId);
-  const byStatus = groupTasksByKanbanStatus(tasks);
+  const rootTasks = tasks.filter((t) => t.parentId == null);
+  const byStatus = groupTasksByKanbanStatus(rootTasks);
 
   const startDateFormatted = formatDateDDMMYY(project.startDate);
   const endDateFormatted = formatDateDDMMYY(project.endDate);

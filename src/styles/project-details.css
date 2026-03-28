@@ -44,6 +44,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Reset `.btn` / `.btn-link` padding (loaded later in main.css) so the glyph stays centered */
+.btn.btn-link.project-details-app-bar-back,
+.btn.btn-link.project-details-title-menu-button,
+.btn.btn-link.project-details-toggle-meta {
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1;
 }
 
 .project-details-name {
@@ -85,6 +99,16 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  line-height: 1;
+}
+
+/* Beats `.btn:hover` in main.css (imported before those rules) */
+.btn.btn-link.project-details-app-bar-back:hover,
+.btn.btn-link.project-details-title-menu-button:hover,
+.btn.btn-link.project-details-toggle-meta:hover,
+.btn.btn-link.project-details-expand-meta:hover {
+  background: rgba(0, 0, 0, 0.06);
 }
 
 .project-details-title-menu-list {
@@ -224,6 +248,8 @@
   height: 32px;
   padding: 0;
   z-index: 2;
+  text-align: center;
+  line-height: 1;
 }
 
 .project-details-shell.meta-hidden .project-details-toggle-meta {
@@ -507,7 +533,7 @@
   margin-top: 0.5rem;
 }
 
-/* Badges (pill/chip style) */
+/* Badges (pill/chip style; used in project meta and Gantt bar tooltip) */
 .badge {
   display: inline-block;
   padding: 0.15rem 0.45rem;
@@ -731,7 +757,6 @@
   background: #0f172a;
   color: #e2e8f0;
 }
-
 
 [data-theme='dark'] .badge-status-NotStarted {
   background: #1f2937;
