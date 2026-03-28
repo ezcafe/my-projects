@@ -1,6 +1,5 @@
 .project-details-shell {
-  background: radial-gradient(circle at top left, #e0f2fe 0, transparent 55%),
-    #f3f4f6;
+  background: var(--bg, #f8fafc);
 }
 
 .project-details-main {
@@ -11,19 +10,40 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  padding: 1.5rem 1.25rem;
+  padding: 1rem;
   width: 100%;
   box-sizing: border-box;
 }
 
-/* M3-style spacing: 24dp vertical rhythm around title */
 .project-details-title-row {
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
+  flex-wrap: nowrap;
   margin: 0;
-  padding: 1.5rem 1.25rem; /* 24dp vertical, 1.25rem horizontal */
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+}
+
+.project-details-app-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1 1 16rem;
+}
+
+.project-details-app-bar-back {
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .project-details-name {
@@ -38,29 +58,82 @@
   letter-spacing: 0;
 }
 
+.project-details-app-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.project-details-title-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.project-details-title-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.project-details-title-menu-button {
+  width: 2rem;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.project-details-title-menu-list {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 20;
+  min-width: 10rem;
+  padding: 0.375rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.project-details-title-menu-list[hidden] {
+  display: none;
+}
+
+.project-details-title-menu-list .btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
 .project-details-columns {
   flex: 1;
   min-height: 0;
   min-width: 0;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0;
+  gap: 1rem;
   align-items: stretch;
 }
 
 @media (min-width: 768px) {
   .project-details-columns {
-    grid-template-columns: 360px 1fr;
+    grid-template-columns: 320px 1fr;
+    gap: 1rem;
   }
 }
 
-/* When meta column is collapsed: 36px strip, contents hidden, button only */
 .project-details-shell.meta-hidden .project-details-columns {
   grid-template-columns: 36px 1fr;
 }
 
-.project-details-shell.meta-hidden .project-details-col-meta-content,
-.project-details-shell.meta-hidden .project-details-col-meta-actions {
+.project-details-shell.meta-hidden .project-details-col-meta-content {
   display: none;
 }
 
@@ -87,10 +160,8 @@
   width: 36px;
   min-width: 36px;
   max-width: 36px;
-  padding: 1rem 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  padding: 0.875rem 0;
+  overflow: hidden;
 }
 
 .project-details-col-meta {
@@ -100,7 +171,10 @@
   box-sizing: border-box;
   max-height: 100%;
   overflow-y: auto;
-  padding: 0 1.25rem 1rem 1.25rem;
+  padding: 0.875rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: #fff;
 }
 
 .project-details-col-meta-header {
@@ -126,36 +200,42 @@
 
 .project-details-col-meta-actions {
   display: flex;
-  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--border, #e5e7eb);
 }
 
 .project-details-col-meta-actions .project-details-toggle-meta {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  min-width: 36px;
+  display: none;
+}
+
+.project-details-toggle-meta {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  z-index: 2;
+}
+
+.project-details-shell.meta-hidden .project-details-toggle-meta {
+  display: none;
 }
 
 @media (min-width: 768px) {
   .project-details-col-meta {
-    width: 360px;
-    min-width: 360px;
-    max-width: 360px;
-    border-right: 1px solid var(--border, #e5e7eb);
+    width: 320px;
+    min-width: 320px;
+    max-width: 320px;
   }
-}
-
-.project-details-shell.meta-hidden .project-details-col-meta {
-  border-right: 1px solid var(--border, #e5e7eb);
 }
 
 .project-details-meta-caption {
@@ -170,11 +250,14 @@
 .project-details-tasks-section {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 0.75rem;
   min-width: 0;
   min-height: 0;
   flex: 1;
-  padding: 0 1.25rem 1rem 1.25rem;
+  padding: 0.875rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 0.5rem;
+  background: #fff;
 }
 
 .project-details-tasks-section > .project-details-meta-caption {
@@ -191,7 +274,7 @@
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  gap: 0.75rem;
   overflow-x: auto;
   overflow-y: auto;
   align-content: start;
@@ -202,11 +285,12 @@
   min-width: 200px;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  background: #ffffff;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  gap: 0;
+  padding: 0 0.75rem;
+}
+
+.kanban-column + .kanban-column {
+  border-left: 1px solid #e5e7eb;
 }
 
 .kanban-column-title {
@@ -220,12 +304,12 @@
 
 .kanban-drop-zone {
   flex: 1;
-  min-height: 120px;
+  min-height: 100px;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border-radius: 0.5rem;
-  padding: 0.5rem;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
   transition: background 0.15s ease;
 }
 
@@ -238,11 +322,11 @@
 .kanban-card {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.6rem 0.75rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
+  gap: 0.3rem;
+  padding: 0.5rem 0.625rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
   font-size: 0.875rem;
   cursor: grab;
 }
@@ -257,8 +341,7 @@
 }
 
 .kanban-card--blocked {
-  background: #fef2f2;
-  border-color: #fecaca;
+  border-color: #fca5a5;
 }
 
 .kanban-card-priority {
@@ -427,50 +510,59 @@
 /* Badges (pill/chip style) */
 .badge {
   display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.375rem;
   font-size: 0.75rem;
   font-weight: 500;
+  border: 1px solid transparent;
 }
 
 .badge-status-NotStarted {
-  background: #f3f4f6;
+  background: #f9fafb;
   color: #4b5563;
+  border-color: #e5e7eb;
 }
 
 .badge-status-InProgress {
-  background: #dbeafe;
+  background: #eff6ff;
   color: #1d4ed8;
+  border-color: #bfdbfe;
 }
 
 .badge-status-Blocked {
-  background: #fee2e2;
+  background: #fef2f2;
   color: #b91c1c;
+  border-color: #fecaca;
 }
 
 .badge-status-Done {
-  background: #d1fae5;
+  background: #ecfdf5;
   color: #047857;
+  border-color: #a7f3d0;
 }
 
 .badge-priority-Low {
-  background: #f3f4f6;
+  background: #f9fafb;
   color: #6b7280;
+  border-color: #e5e7eb;
 }
 
 .badge-priority-Medium {
-  background: #fef3c7;
+  background: #fffbeb;
   color: #b45309;
+  border-color: #fde68a;
 }
 
 .badge-priority-High {
-  background: #fed7aa;
+  background: #fff7ed;
   color: #c2410c;
+  border-color: #fdba74;
 }
 
 .badge-priority-Critical {
-  background: #fecaca;
+  background: #fef2f2;
   color: #b91c1c;
+  border-color: #fca5a5;
 }
 
 .tasks-section {
@@ -534,12 +626,16 @@
 
 /* Dark theme */
 [data-theme='dark'] .project-details-shell {
-  background: radial-gradient(circle at top left, #1e3a5f 0, transparent 55%),
-    #0f172a;
+  background: #0f172a;
 }
 
 [data-theme='dark'] .project-details-name {
   color: #f1f5f9;
+}
+
+[data-theme='dark'] .project-details-title-menu-list {
+  background: #111827;
+  border-color: #334155;
 }
 
 [data-theme='dark'] .project-details-meta-caption {
@@ -547,16 +643,25 @@
 }
 
 [data-theme='dark'] .project-details-col-meta {
-  border-right-color: #334155;
+  background: #111827;
+  border-color: #334155;
 }
 
 [data-theme='dark'] .project-details-col-meta-actions {
   border-top-color: #334155;
 }
 
+[data-theme='dark'] .project-details-tasks-section {
+  background: #111827;
+  border-color: #334155;
+}
+
 [data-theme='dark'] .kanban-column {
-  background: #1e293b;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border-color: transparent;
+}
+
+[data-theme='dark'] .kanban-column + .kanban-column {
+  border-left-color: #334155;
 }
 
 [data-theme='dark'] .kanban-column-title {
@@ -569,7 +674,7 @@
 }
 
 [data-theme='dark'] .kanban-card {
-  background: #0f172a;
+  background: #111827;
   border-color: #334155;
 }
 
@@ -614,11 +719,6 @@
   color: #64748b;
 }
 
-[data-theme='dark'] .tasks-section {
-  background: #1e293b;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
 [data-theme='dark'] .project-details-form-panel h3,
 [data-theme='dark'] .tasks-header h2 {
   color: #e2e8f0;
@@ -634,43 +734,51 @@
 
 
 [data-theme='dark'] .badge-status-NotStarted {
-  background: #334155;
+  background: #1f2937;
   color: #cbd5e1;
+  border-color: #475569;
 }
 
 [data-theme='dark'] .badge-status-InProgress {
-  background: #1e3a8a;
+  background: #172554;
   color: #93c5fd;
+  border-color: #1d4ed8;
 }
 
 [data-theme='dark'] .badge-status-Blocked {
-  background: #7f1d1d;
+  background: #450a0a;
   color: #fecaca;
+  border-color: #7f1d1d;
 }
 
 [data-theme='dark'] .badge-status-Done {
-  background: #064e3b;
+  background: #022c22;
   color: #6ee7b7;
+  border-color: #047857;
 }
 
 [data-theme='dark'] .badge-priority-Low {
-  background: #334155;
+  background: #1f2937;
   color: #94a3b8;
+  border-color: #475569;
 }
 
 [data-theme='dark'] .badge-priority-Medium {
-  background: #78350f;
+  background: #451a03;
   color: #fcd34d;
+  border-color: #b45309;
 }
 
 [data-theme='dark'] .badge-priority-High {
-  background: #7c2d12;
+  background: #431407;
   color: #fdba74;
+  border-color: #c2410c;
 }
 
 [data-theme='dark'] .badge-priority-Critical {
-  background: #7f1d1d;
+  background: #450a0a;
   color: #fecaca;
+  border-color: #b91c1c;
 }
 
 [data-theme='dark'] .task-children {

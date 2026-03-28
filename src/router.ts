@@ -16,6 +16,14 @@ function parseRoute(hash: string): Route {
   if (!cleaned || cleaned === '/') return { type: 'home' };
 
   const parts = cleaned.split('/').filter(Boolean);
+  if (parts[0] === 'project' && parts[1] === 'update') {
+    const editProjectId = parts[2] ? Number(parts[2]) : undefined;
+    return {
+      type: 'add-project',
+      ...(Number.isNaN(editProjectId) ? {} : { editProjectId }),
+    };
+  }
+  // Backward compatibility for existing deep links.
   if (parts[0] === 'add-project') {
     const editProjectId = parts[1] ? Number(parts[1]) : undefined;
     return {
@@ -38,8 +46,8 @@ function navigate(route: Route) {
     window.location.hash = '#/';
   } else if (route.type === 'add-project') {
     window.location.hash = route.editProjectId
-      ? `#/add-project/${route.editProjectId}`
-      : '#/add-project';
+      ? `#/project/update/${route.editProjectId}`
+      : '#/project/update';
   } else {
     window.location.hash = `#/project/${route.id}`;
   }
@@ -66,11 +74,11 @@ export function goToHome() {
 }
 
 export function goToAddProject() {
-  window.location.hash = '#/add-project';
+  window.location.hash = '#/project/update';
 }
 
 export function goToEditProject(projectId: number) {
-  window.location.hash = `#/add-project/${projectId}`;
+  window.location.hash = `#/project/update/${projectId}`;
 }
 
 export function goToProject(id: number) {

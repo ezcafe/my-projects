@@ -1,4 +1,7 @@
 import { db } from '../db/schema';
+import {
+  TASK_MAX_LEVEL,
+} from '../models/domain';
 import type { Task, ProjectPriority, ProjectStatus } from '../models/domain';
 
 function nowIso(): string {
@@ -110,7 +113,44 @@ export interface TaskInput {
   parentId?: number | null;
 }
 
+async function getAncestorCount(parentId: number | null | undefined): Promise<number> {
+  if (parentId == null) return 0;
+  const visited = new Set<number>();
+  let count = 0;
+  let currentParentId: number | null = parentId;
+
+  while (currentParentId != null) {
+    if (visited.has(currentParentId)) {
+      throw new Error('Invalid task hierarchy: cyclic parent relationship detected.');
+    }
+    visited.add(currentParentId);
+    const parent: Task | undefined = await db.tasks.get(currentParentId);
+    if (!parent) {
+      throw new Error('Parent task not found.');
+    }
+    count += 1;
+    currentParentId = parent.parentId ?? null;
+  }
+
+  return count;
+}
+
 export async function createTask(input: TaskInput): Promise<Task> {
+  if (input.parentId != null) {
+    const parentTask = await db.tasks.get(input.parentId);
+    if (!parentTask) {
+      throw new Error('Parent task not found.');
+    }
+    if (parentTask.projectId !== input.projectId) {
+      throw new Error('Parent task must belong to the same project.');
+    }
+    const ancestorCount = await getAncestorCount(input.parentId);
+    const newTaskLevel = ancestorCount + 1;
+    if (newTaskLevel > TASK_MAX_LEVEL) {
+      throw new Error(`Subtasks can only be nested up to ${TASK_MAX_LEVEL} levels.`);
+    }
+  }
+
   const timestamp = nowIso();
   const maxOrder =
     (await db.tasks

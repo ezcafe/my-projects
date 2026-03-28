@@ -1,3 +1,4 @@
+import { TASK_MAX_LEVEL } from '../models/domain';
 import type { ProjectPriority, ProjectStatus } from '../models/domain';
 import { buildTaskTree } from '../models/domain';
 import {
@@ -73,6 +74,26 @@ function setDefaultDates(): { start: string; end: string } {
     start: today.toISOString().slice(0, 10),
     end: endDate.toISOString().slice(0, 10),
   };
+}
+
+function getMaxDraftLevel(list: TaskDraft[], level = 1): number {
+  let maxLevel = 0;
+  for (const draft of list) {
+    maxLevel = Math.max(maxLevel, level);
+    if (draft.subtasks.length > 0) {
+      maxLevel = Math.max(maxLevel, getMaxDraftLevel(draft.subtasks, level + 1));
+    }
+  }
+  return maxLevel;
+}
+
+function validateDraftDepth(list: TaskDraft[]): boolean {
+  const maxLevel = getMaxDraftLevel(list);
+  if (maxLevel > TASK_MAX_LEVEL) {
+    alert(`Subtasks can only be nested up to ${TASK_MAX_LEVEL} levels.`);
+    return false;
+  }
+  return true;
 }
 
 export async function renderAddProjectView(
@@ -169,67 +190,67 @@ export async function renderAddProjectView(
     }
   }
 
-  const metaVisible = localStorage.getItem('project-details-meta-visible') !== 'false';
-  const shellClass = metaVisible
-    ? 'app-shell add-project-shell project-details-shell'
-    : 'app-shell add-project-shell project-details-shell meta-hidden';
-
   root.innerHTML = `
-    <div class="${shellClass}">
+    <div class="app-shell add-project-shell project-details-shell">
       <main class="app-main project-details-main add-project-main">
         <div class="project-details-title-row">
-          <h1 class="project-details-name" id="add-project-title">${escapeHtml(pageTitle)}</h1>
+          <div class="project-details-app-bar-left">
+            <button type="button" class="btn btn-link project-details-app-bar-back" id="appbar-back" aria-label="Go back">\u2039</button>
+            <h1 class="project-details-name" id="add-project-title">${escapeHtml(pageTitle)}</h1>
+          </div>
+          <div class="project-details-app-bar-right">
+            <div class="project-details-title-primary-actions">
+              <button type="button" class="btn" id="add-project-save">Save</button>
+              <button type="button" class="btn btn-secondary" id="add-project-save-exit">Save & Exit</button>
+            </div>
+            <div class="project-details-title-menu">
+              <button type="button" class="btn btn-link project-details-title-menu-button" id="add-project-more-actions" aria-haspopup="menu" aria-expanded="false" aria-controls="add-project-more-menu">\u22ef</button>
+              <div class="project-details-title-menu-list" id="add-project-more-menu" role="menu" hidden>
+                ${editProjectId == null ? '<input type="file" accept=".json,application/json" id="add-project-import-input" style="display:none" aria-hidden="true" /><button type="button" class="btn btn-secondary" id="add-project-import" role="menuitem">Import</button>' : ''}
+                ${editProjectId != null ? '<button type="button" class="btn btn-secondary add-project-action-archive" id="add-project-archive" role="menuitem">Archive</button><button type="button" class="btn btn-danger" id="add-project-delete" role="menuitem">Delete</button>' : ''}
+              </div>
+            </div>
+          </div>
         </div>
         <div class="project-details-columns">
           <aside class="project-details-col-meta">
-            <div class="project-details-col-meta-header">
-              <p class="project-details-meta-caption" aria-hidden="true">Project info</p>
-              <button type="button" class="btn btn-link project-details-expand-meta" id="add-project-expand-meta" aria-label="Show project details" aria-expanded="${!metaVisible}">\u203A</button>
-            </div>
-            <div class="project-details-col-meta-content">
-              <form class="add-project-form add-project-meta-form" id="add-project-meta-form">
-                <section class="add-project-section add-project-meta">
-                  <label>
-                    <span>Project name</span>
-                    <input name="name" type="text" id="add-project-name" class="add-project-name-h1" required placeholder="Project name" value="${escapeHtml(metaPrefill.name)}" />
-                  </label>
-                  <label>
-                    <span>Description</span>
-                    <textarea name="description" rows="3" placeholder="Optional description">${escapeHtml(metaPrefill.description)}</textarea>
-                  </label>
-                  <label>
-                    <span>Status</span>
-                    <select name="status">
-                      <option value="NotStarted" ${metaPrefill.status === 'NotStarted' ? 'selected' : ''}>Not started</option>
-                      <option value="InProgress" ${metaPrefill.status === 'InProgress' ? 'selected' : ''}>In progress</option>
-                      <option value="Blocked" ${metaPrefill.status === 'Blocked' ? 'selected' : ''}>Blocked</option>
-                      <option value="Done" ${metaPrefill.status === 'Done' ? 'selected' : ''}>Done</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Priority</span>
-                    <select name="priority">
-                      <option value="Low" ${metaPrefill.priority === 'Low' ? 'selected' : ''}>Low</option>
-                      <option value="Medium" ${metaPrefill.priority === 'Medium' ? 'selected' : ''}>Medium</option>
-                      <option value="High" ${metaPrefill.priority === 'High' ? 'selected' : ''}>High</option>
-                      <option value="Critical" ${metaPrefill.priority === 'Critical' ? 'selected' : ''}>Critical</option>
-                    </select>
-                  </label>
-                  <label>
-                    <span>Dates</span>
-                    <input type="text" id="add-project-meta-date-range-display" placeholder="DD/MM/YY — DD/MM/YY" value="${metaPrefill.startDate} — ${metaPrefill.endDate}" />
-                    <input name="startDate" type="hidden" />
-                    <input name="endDate" type="hidden" />
-                  </label>
-                </section>
-              </form>
-            </div>
-            <div class="project-details-col-meta-actions">
-              ${editProjectId == null ? '<input type="file" accept=".json,application/json" id="add-project-import-input" style="display:none" aria-hidden="true" /><button type="button" class="btn btn-secondary" id="add-project-import">Import</button>' : ''}
-              <button type="button" class="btn" id="add-project-save">Save</button>
-              <button type="button" class="btn btn-secondary" id="add-project-save-exit">Save & Exit</button>
-              ${editProjectId != null ? '<button type="button" class="btn btn-secondary add-project-action-archive" id="add-project-archive">Archive</button><button type="button" class="btn btn-danger" id="add-project-delete">Delete</button>' : ''}
-            </div>
+            <p class="project-details-meta-caption" aria-hidden="true">Project info</p>
+            <form class="add-project-form add-project-meta-form" id="add-project-meta-form">
+              <section class="add-project-section add-project-meta">
+                <label>
+                  <span>Project name</span>
+                  <input name="name" type="text" id="add-project-name" class="add-project-name-h1" required placeholder="Project name" value="${escapeHtml(metaPrefill.name)}" />
+                </label>
+                <label>
+                  <span>Dates</span>
+                  <input type="text" id="add-project-meta-date-range-display" placeholder="DD/MM/YY — DD/MM/YY" value="${metaPrefill.startDate} — ${metaPrefill.endDate}" />
+                  <input name="startDate" type="hidden" />
+                  <input name="endDate" type="hidden" />
+                </label>
+                <label>
+                  <span>Status</span>
+                  <select name="status">
+                    <option value="NotStarted" ${metaPrefill.status === 'NotStarted' ? 'selected' : ''}>Not started</option>
+                    <option value="InProgress" ${metaPrefill.status === 'InProgress' ? 'selected' : ''}>In progress</option>
+                    <option value="Blocked" ${metaPrefill.status === 'Blocked' ? 'selected' : ''}>Blocked</option>
+                    <option value="Done" ${metaPrefill.status === 'Done' ? 'selected' : ''}>Done</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Priority</span>
+                  <select name="priority">
+                    <option value="Low" ${metaPrefill.priority === 'Low' ? 'selected' : ''}>Low</option>
+                    <option value="Medium" ${metaPrefill.priority === 'Medium' ? 'selected' : ''}>Medium</option>
+                    <option value="High" ${metaPrefill.priority === 'High' ? 'selected' : ''}>High</option>
+                    <option value="Critical" ${metaPrefill.priority === 'Critical' ? 'selected' : ''}>Critical</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Description</span>
+                  <textarea name="description" rows="3" placeholder="Optional description">${escapeHtml(metaPrefill.description)}</textarea>
+                </label>
+              </section>
+            </form>
           </aside>
           <div class="project-details-tasks-section">
             <p class="project-details-meta-caption" aria-hidden="true">Project tasks</p>
@@ -243,21 +264,39 @@ export async function renderAddProjectView(
     </div>
   `;
 
-  const shell = root.querySelector<HTMLElement>('.project-details-shell');
-  const expandMetaBtn = root.querySelector<HTMLButtonElement>('#add-project-expand-meta');
+  root.querySelector<HTMLButtonElement>('#appbar-back')?.addEventListener(
+    'click',
+    () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        goToHome();
+      }
+    },
+  );
 
-  const setCollapsed = (collapsed: boolean) => {
-    if (collapsed) {
-      shell?.classList.add('meta-hidden');
-      localStorage.setItem('project-details-meta-visible', 'false');
-    } else {
-      shell?.classList.remove('meta-hidden');
-      localStorage.setItem('project-details-meta-visible', 'true');
-    }
-    expandMetaBtn?.setAttribute('aria-expanded', String(collapsed));
+  const moreBtn = root.querySelector<HTMLButtonElement>('#add-project-more-actions');
+  const moreMenu = root.querySelector<HTMLElement>('#add-project-more-menu');
+  const moreWrap = root.querySelector<HTMLElement>('.project-details-title-menu');
+  const closeMoreMenu = () => {
+    if (!moreBtn || !moreMenu) return;
+    moreMenu.hidden = true;
+    moreBtn.setAttribute('aria-expanded', 'false');
   };
-
-  expandMetaBtn?.addEventListener('click', () => setCollapsed(false));
+  moreBtn?.addEventListener('click', () => {
+    if (!moreBtn || !moreMenu) return;
+    const next = moreMenu.hidden;
+    moreMenu.hidden = !next;
+    moreBtn.setAttribute('aria-expanded', String(next));
+  });
+  root.addEventListener('click', (event) => {
+    if (!moreWrap?.contains(event.target as Node)) {
+      closeMoreMenu();
+    }
+  });
+  moreMenu?.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
+    btn.addEventListener('click', () => closeMoreMenu());
+  });
 
   const metaForm = root.querySelector<HTMLFormElement>('#add-project-meta-form')!;
   const saveBtn = root.querySelector<HTMLButtonElement>('#add-project-save')!;
@@ -346,6 +385,7 @@ export async function renderAddProjectView(
     const meta = readMeta();
     if (!meta) return;
     await applyProjectDateChangeIfConfirmed(meta);
+    if (!validateDraftDepth(taskTree.getTasks())) return;
     const originalSaveText = saveBtn.textContent;
     saveBtn.disabled = true;
     saveBtn.setAttribute('aria-busy', 'true');
@@ -375,6 +415,8 @@ export async function renderAddProjectView(
       const tasksRaw = await listTasksForProject(savedProjectId!);
       taskTree.setTasks(taskTreeToDrafts(buildTaskTree(tasksRaw), meta.startDate, meta.endDate));
       taskTree.refresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save');
     } finally {
       saveBtn.disabled = false;
       saveBtn.removeAttribute('aria-busy');
@@ -387,6 +429,7 @@ export async function renderAddProjectView(
     const meta = readMeta();
     if (!meta) return;
     await applyProjectDateChangeIfConfirmed(meta);
+    if (!validateDraftDepth(taskTree.getTasks())) return;
     const payloadStart = dateOnlyToUtcIso(meta.startDate);
     const payloadEnd = dateOnlyToUtcIso(meta.endDate);
     saveExitBtn.disabled = true;
@@ -491,6 +534,9 @@ export async function renderAddProjectView(
           metaEndInput.value = endFormatted;
           metaDisplayEl.value = `${startFormatted} — ${endFormatted}`;
           const drafts = taskTreeToDrafts(buildTaskTree(tasks), startFormatted, endFormatted);
+          if (!validateDraftDepth(drafts)) {
+            return;
+          }
           taskTree.setTasks(drafts);
           taskTree.refresh();
         } catch {

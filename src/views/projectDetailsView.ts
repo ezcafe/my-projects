@@ -183,11 +183,27 @@ export async function renderProjectDetailsView(
   const shellClass = metaVisible
     ? 'app-shell project-details-shell'
     : 'app-shell project-details-shell meta-hidden';
+
   root.innerHTML = `
     <div class="${shellClass}">
       <main class="app-main project-details-main">
         <div class="project-details-title-row">
-          <h1 class="project-details-name" id="project-details-title">${escapeHtml(project.name)}</h1>
+          <div class="project-details-app-bar-left">
+            <button type="button" class="btn btn-link project-details-app-bar-back" id="appbar-back" aria-label="Go back">\u2039</button>
+            <h1 class="project-details-name" id="project-details-title">${escapeHtml(project.name)}</h1>
+          </div>
+          <div class="project-details-app-bar-right">
+            <div class="project-details-title-primary-actions">
+              <button type="button" class="btn" id="edit-project">Edit</button>
+              <button type="button" class="btn" id="clone-project">Clone</button>
+            </div>
+            <div class="project-details-title-menu">
+              <button type="button" class="btn btn-link project-details-title-menu-button" id="project-more-actions" aria-haspopup="menu" aria-expanded="false" aria-controls="project-more-menu">\u22ef</button>
+              <div class="project-details-title-menu-list" id="project-more-menu" role="menu" hidden>
+                <button type="button" class="btn btn-secondary" id="export-project" role="menuitem">Export</button>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="project-details-columns">
           <aside class="project-details-col-meta project-details-readonly">
@@ -197,21 +213,16 @@ export async function renderProjectDetailsView(
             </div>
             <div class="project-details-col-meta-content">
               <dl class="project-details-dl">
+                <dt>Dates</dt>
+                <dd>${datesRange}</dd>
                 <dt>Status</dt>
                 <dd><span class="badge badge-status-${project.status}">${statusLabel(project.status)}</span></dd>
                 <dt>Priority</dt>
                 <dd><span class="badge badge-priority-${project.priority}">${priorityLabel(project.priority)}</span></dd>
-                <dt>Dates</dt>
-                <dd>${datesRange}</dd>
                 ${hasDescription ? `<dt>Description</dt><dd class="project-details-desc">${escapeHtml(project.description!.trim())}</dd>` : ''}
               </dl>
             </div>
-            <div class="project-details-col-meta-actions">
-              <button type="button" class="btn btn-link project-details-toggle-meta" id="toggle-meta" aria-label="Hide project details" aria-expanded="${metaVisible}">\u2039</button>
-              <button type="button" class="btn" id="clone-project">Clone</button>
-              <button type="button" class="btn" id="edit-project">Edit</button>
-              <button type="button" class="btn btn-secondary" id="export-project">Export</button>
-            </div>
+            <button type="button" class="btn btn-link project-details-toggle-meta" id="toggle-meta" aria-label="Hide project details" aria-expanded="${metaVisible}">\u2039</button>
           </aside>
           <div class="project-details-tasks-section">
             <p class="project-details-meta-caption" aria-hidden="true">Project tasks</p>
@@ -243,6 +254,40 @@ export async function renderProjectDetailsView(
   toggleMetaBtn?.addEventListener('click', () => setCollapsed(true));
   expandMetaBtn?.addEventListener('click', () => setCollapsed(false));
 
+
+  root.querySelector<HTMLButtonElement>('#appbar-back')?.addEventListener(
+    'click',
+    () => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        goToHome();
+      }
+    },
+  );
+
+  const moreBtn = root.querySelector<HTMLButtonElement>('#project-more-actions');
+  const moreMenu = root.querySelector<HTMLElement>('#project-more-menu');
+  const moreWrap = root.querySelector<HTMLElement>('.project-details-title-menu');
+  const closeMoreMenu = () => {
+    if (!moreBtn || !moreMenu) return;
+    moreMenu.hidden = true;
+    moreBtn.setAttribute('aria-expanded', 'false');
+  };
+  moreBtn?.addEventListener('click', () => {
+    if (!moreBtn || !moreMenu) return;
+    const next = moreMenu.hidden;
+    moreMenu.hidden = !next;
+    moreBtn.setAttribute('aria-expanded', String(next));
+  });
+  root.addEventListener('click', (event) => {
+    if (!moreWrap?.contains(event.target as Node)) {
+      closeMoreMenu();
+    }
+  });
+  moreMenu?.querySelectorAll<HTMLButtonElement>('button').forEach((btn) => {
+    btn.addEventListener('click', () => closeMoreMenu());
+  });
 
   root.querySelector<HTMLButtonElement>('#edit-project')?.addEventListener(
     'click',

@@ -33,6 +33,14 @@ export interface TaskTreeNode extends Task {
   children: TaskTreeNode[];
 }
 
+/** Root task is level 1, and subtasks can be nested up to this level. */
+export const TASK_MAX_LEVEL = 4;
+
+/** UI tree depth is zero-based; level is one-based for user-facing limits. */
+export function taskLevelFromDepth(depth: number): number {
+  return depth + 1;
+}
+
 export function buildTaskTree(tasks: Task[]): TaskTreeNode[] {
   const byId = new Map<number, TaskTreeNode>();
   const roots: TaskTreeNode[] = [];

@@ -1,3 +1,7 @@
+import {
+  TASK_MAX_LEVEL,
+  taskLevelFromDepth,
+} from '../../models/domain';
 import type { ProjectPriority, ProjectStatus } from '../../models/domain';
 import type { TaskTreeNode } from '../../models/domain';
 import { confirmDialog } from './confirmDialog';
@@ -151,6 +155,8 @@ function escapeHtml(s: string): string {
 
 function renderTaskNode(t: TaskDraft, depth: number, collapsedIds: Set<string>): string {
   const hasSubtasks = t.subtasks.length > 0;
+  const level = taskLevelFromDepth(depth);
+  const canAddSubtask = level < TASK_MAX_LEVEL;
   const isCollapsed = hasSubtasks && collapsedIds.has(t.id);
   const childrenClass =
     hasSubtasks && isCollapsed
@@ -173,8 +179,8 @@ function renderTaskNode(t: TaskDraft, depth: number, collapsedIds: Set<string>):
             <input type="text" class="add-project-task-title" data-field="title" placeholder="Task title" value="${escapeHtml(t.title)}" autocomplete="off" />
           </label>
           <div class="add-project-task-actions" role="group" aria-label="Task actions">
-            <button type="button" class="btn btn-small btn-ghost add-project-task-btn-add" data-action="add-subtask" aria-label="Add subtask"><span aria-hidden="true">+</span> Subtask</button>
-            <button type="button" class="btn btn-small btn-ghost btn-danger add-project-task-btn-remove" data-action="remove" aria-label="Remove task">Remove</button>
+            <button type="button" class="btn btn-small btn-ghost add-project-task-btn-add" data-action="add-subtask" aria-label="Add subtask" ${canAddSubtask ? '' : `disabled aria-disabled="true" title="Maximum ${TASK_MAX_LEVEL} levels reached"`}><span aria-hidden="true">+</span> Subtask</button>
+            <button type="button" class="btn btn-small btn-ghost btn-danger add-project-task-btn-remove" data-action="remove" aria-label="Remove task"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg> Remove</button>
           </div>
         </div>
         <div class="add-project-task-row-line2">
@@ -213,7 +219,7 @@ const EMPTY_STATE_HTML = `
   <div class="add-project-empty-state" aria-live="polite">
     <div class="add-project-empty-state-icon" aria-hidden="true">📋</div>
     <p class="add-project-empty-state-text">No tasks yet</p>
-    <p class="add-project-empty-state-hint">Add tasks to break down your project. You can add subtasks to any task.</p>
+    <p class="add-project-empty-state-hint">Add tasks to break down your project. You can nest subtasks up to ${TASK_MAX_LEVEL} levels (root included).</p>
     <button type="button" class="btn add-project-empty-state-cta" data-action="add-first-task" aria-label="Add your first task">Add your first task</button>
   </div>
 `;
@@ -329,6 +335,12 @@ export function createAddProjectTaskTree(
         refresh();
       }
     } else if (action === 'add-subtask' && node) {
+      const nodeDepth = Number(node.dataset.depth ?? '0');
+      const nodeLevel = taskLevelFromDepth(Number.isFinite(nodeDepth) ? nodeDepth : 0);
+      if (nodeLevel >= TASK_MAX_LEVEL) {
+        alert(`Subtasks can only be nested up to ${TASK_MAX_LEVEL} levels.`);
+        return;
+      }
       const draftId = node.dataset.draftId!;
       const { start, end } = getDefaultDates();
       const newDraft = newTaskDraft(start, end);
